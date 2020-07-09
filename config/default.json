@@ -1,0 +1,19 @@
+{
+    "data": {
+        "source": {
+            "uri": "postgres://postgres:thepassword@database:5432",
+            "dbName": "source_db"
+        },
+        "target": {
+            "uri": "postgres://postgres:thepassword@database:5432",
+            "dbName": "target_db"
+        }
+    },
+    "transform": {
+        "personal_details": {
+            "firstname": "{{name.firstName}}",
+            "lastname": "{{name.lastname}}",
+            "address": "{{address.streetAddress}} - {{address.streetName}}"
+        }
+    }
+}

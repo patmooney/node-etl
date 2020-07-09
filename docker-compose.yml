@@ -1,0 +1,21 @@
+version: '3'
+services:
+  database:
+    image: "postgres"
+    ports:
+      - "5432:5432"
+    env_file:
+      - database.env
+    networks:
+      - etl_network
+  etl:
+    build:
+      context: ./
+      dockerfile: ./Dockerfile
+    depends_on:
+      - database
+    networks:
+      - etl_network
+
+networks:
+  etl_network:
