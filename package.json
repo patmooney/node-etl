@@ -5,19 +5,29 @@
   "main": "index.js",
   "scripts": {
     "start": "docker-compose down --volumes; docker-compose up --build etl",
-    "sh": "docker-compose down --volumes; docker-compose build etl; docker-compose run --rm etl /bin/sh --force-recreate"
+    "sh": "docker-compose down --volumes; docker-compose build etl; docker-compose run --rm etl /bin/sh --force-recreate",
+    "db:up": "docker-compose up -d database",
+    "db:cxn": "psql postgresql://postgres:thepassword@localhost:5432",
+    "test": "mocha --recursive test/"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "async-exit-hook": "^2.0.1",
+    "chai-spies": "^1.0.0",
     "config": "^3.3.1",
-    "event-stream": "^4.0.1",
-    "exit-hook": "^2.2.0",
+    "csv-parser": "^2.3.3",
+    "csv-write-stream": "^2.0.0",
     "faker": "^4.1.0",
+    "mockery": "^2.1.0",
     "pg": "^8.3.0",
-    "pg-copy-streams": "^5.1.0",
-    "tmp": "^0.2.1",
+    "pg-cursor": "^2.3.0",
     "tmp-promise": "^3.0.2"
+  },
+  "devDependencies": {
+    "chai": "^4.2.0",
+    "chai-as-promised": "^7.1.1",
+    "mocha": "^8.0.1"
   }
 }

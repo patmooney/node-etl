@@ -1,6 +1,6 @@
 const config = require('config');
+const exitHook = require('async-exit-hook');
 const { Client } = require('pg');
-const exitHook = require('exit-hook');
 
 const {
     copySchema,
@@ -9,43 +9,63 @@ const {
     migrateTempDb
 } = require('./lib');
 
+/*
+ * So many options exist for ETL of data, including ETL frameworks,
+ * automated tools etc.
+ *
+ * This is a bare-bones ETL which also transforms data on ingress.
+ *
+ * In Production and working with large data sets, this would more
+ * likely work by exporting CSV data, manipulating and then re-uploading
+ * (host postgres server requires SCP)
+ *
+ * This workflow avoids putting sensitive data down anywhere between ETL
+ */
 async function run() {
     console.log('Running UAT restore');
 
-    const sourcePg = new Client(config.data.source.uri);
-    const targetPg = new Client(config.data.target.uri);
-    let tmpDbName;
+    console.log(' - Load Schema');
+    const tmpDbName = await copySchema(
+        config.data.source,
+        config.data.target
+    );
 
-    exitHook(async () => {
-        await cleanTempDb(targetPg, tmpDbName);
-        sourcePg.end();
-        targetPg.end();
+    const sourcePg = new Client({ ...config.data.source.cxn, database: config.data.source.database });
+    const tempPg = new Client({ ...config.data.target.cxn, database: tmpDbName });
+    await Promise.all([sourcePg.connect(), tempPg.connect()]);
+
+    exitHook(async (done) => {
+        console.log('Cleanup...');
+        try {
+            await cleanTempDb(config.data.target.cxn, tmpDbName);
+            sourcePg.end();
+            tempPg.end();
+        } catch (err) {
+            console.log('Cleanup failed', err);
+        }
+        console.log('Cleanup complete');
+        done();
     });
 
-    try {
-        console.log(' - Connect');
-        await Promise.all([sourcePg.connect(), targetPg.connect()]);
+    console.log(' - Load Data');
+    await migrateData(
+        config.data.source, tempPg, config.data.target, tmpDbName, config.transform
+    );
 
-        console.log(' - Load Schema');
-        const tmpDbName = await copySchema(
-            config.data.source.uri,
-            config.data.target.uri,
-            config.data.source.dbName
-        );
-
-        console.log(' - Load Data');
-        await migrateData(
-            sourcePg, config.data.source.dbName, targetPg, tmpDbName
-        );
-
-        console.log('- Migrate Temporary DB');
-        await migrateTempDb(
-            targetDb, tmpDbName, config.data.target.dbName
-        );
-    } catch (err) {
-        console.error('UAT Restore failed', err);
-        process.exit(1);
-    }
+    console.log('- Migrate Temporary DB');
+    await sourcePg.end();
+    await tempPg.end();
+    await migrateTempDb(
+        config.data.target.cxn, tmpDbName, config.data.target.database
+    );
 }
 
-run();
+if (!module.parent) {
+    run().catch(
+        err => console.error('UAT Failed', err)
+    );
+}
+
+module.exports = {
+    run
+};

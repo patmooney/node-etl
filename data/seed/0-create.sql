@@ -1,4 +1,5 @@
 CREATE DATABASE source_db;
+CREATE DATABASE target_db;
 
 \c source_db;
 
