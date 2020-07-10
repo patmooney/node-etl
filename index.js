@@ -30,15 +30,13 @@ async function run() {
         config.data.target
     );
 
-    const sourcePg = new Client({ ...config.data.source.cxn, database: config.data.source.database });
     const tempPg = new Client({ ...config.data.target.cxn, database: tmpDbName });
-    await Promise.all([sourcePg.connect(), tempPg.connect()]);
+    await tempPg.connect();
 
     exitHook(async (done) => {
         console.log('Cleanup...');
         try {
             await cleanTempDb(config.data.target.cxn, tmpDbName);
-            sourcePg.end();
             tempPg.end();
         } catch (err) {
             console.log('Cleanup failed', err);
@@ -53,7 +51,6 @@ async function run() {
     );
 
     console.log('- Migrate Temporary DB');
-    await sourcePg.end();
     await tempPg.end();
     await migrateTempDb(
         config.data.target.cxn, tmpDbName, config.data.target.database
