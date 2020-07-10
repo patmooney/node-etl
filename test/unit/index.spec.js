@@ -65,7 +65,7 @@ describe('index', function () {
         await (new Promise(resolve => exitHookCb(resolve)));
 
         expect(libMock.cleanTempDb).to.have.been.called.with('the-target-cxn', 'the-tmp-db');
-        expect(ClientMock.prototype.end).to.have.been.called.exactly(2);
+        expect(ClientMock.prototype.end).to.have.been.called.exactly(1);
     });
 
     it('should finish as expected', async function () {
